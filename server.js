@@ -24,6 +24,10 @@ app.use(cors());
 app.use(express.json());
 
 const normalizeIsbn = (value) => (value || '').replace(/[^0-9Xx]/g, '').toUpperCase();
+const hasValue = (value) => {
+  if (typeof value === 'string') return value.trim() !== '';
+  return value !== undefined && value !== null;
+};
 
 const extractIsbn = (rawCode) => {
   const code = rawCode?.trim() || '';
@@ -230,28 +234,65 @@ app.post('/api/books/resolve', async (req, res, next) => {
 
 app.post('/api/books/manual', async (req, res, next) => {
   try {
-    const payload = toBookPayload(req.body);
+    const onlyIsbnInput =
+      !hasValue(req.body.title) &&
+      !hasValue(req.body.author) &&
+      !hasValue(req.body.genre) &&
+      !hasValue(req.body.condition) &&
+      !hasValue(req.body.shelfCode) &&
+      !hasValue(req.body.totalCopies) &&
+      !hasValue(req.body.availableCopies) &&
+      !hasValue(req.body.coverUrl);
+
+    let payload = toBookPayload(req.body);
     if (!payload.isbn || (payload.isbn.length !== 10 && payload.isbn.length !== 13)) {
       return res.status(400).json({ error: 'ISBN must be 10 or 13 characters (digits/X).' });
     }
 
+    const metadata = await fetchBookMetadata(payload.isbn);
+    if (metadata) {
+      payload = {
+        ...payload,
+        title: hasValue(req.body.title) ? req.body.title.trim() : metadata.title || payload.title,
+        author: hasValue(req.body.author) ? req.body.author.trim() : metadata.author || payload.author,
+        genre: hasValue(req.body.genre) ? req.body.genre.trim() : metadata.genre || payload.genre,
+        coverUrl: hasValue(req.body.coverUrl) ? req.body.coverUrl.trim() : metadata.coverUrl || payload.coverUrl,
+      };
+    }
+
     const existing = await prisma.book.findUnique({ where: { isbn: payload.isbn } });
-    const saved = existing
-      ? await prisma.book.update({
-          where: { isbn: payload.isbn },
-          data: {
-            ...payload,
-            availableCopies: Math.min(payload.availableCopies, payload.totalCopies),
-          },
-          include: includeBook,
-        })
-      : await prisma.book.create({
-          data: {
-            ...payload,
-            availableCopies: Math.min(payload.availableCopies, payload.totalCopies),
-          },
-          include: includeBook,
-        });
+    let saved;
+    if (existing && onlyIsbnInput) {
+      saved = await prisma.book.update({
+        where: { isbn: payload.isbn },
+        data: {
+          totalCopies: { increment: 1 },
+          availableCopies: { increment: 1 },
+          title: payload.title || existing.title,
+          author: payload.author || existing.author,
+          genre: payload.genre || existing.genre,
+          coverUrl: payload.coverUrl || existing.coverUrl,
+        },
+        include: includeBook,
+      });
+    } else if (existing) {
+      saved = await prisma.book.update({
+        where: { isbn: payload.isbn },
+        data: {
+          ...payload,
+          availableCopies: Math.min(payload.availableCopies, payload.totalCopies),
+        },
+        include: includeBook,
+      });
+    } else {
+      saved = await prisma.book.create({
+        data: {
+          ...payload,
+          availableCopies: Math.min(payload.availableCopies, payload.totalCopies),
+        },
+        include: includeBook,
+      });
+    }
 
     res.json(withActiveCheckout(saved));
   } catch (error) {
