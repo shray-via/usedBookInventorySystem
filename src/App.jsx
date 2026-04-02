@@ -39,7 +39,7 @@ export default function App() {
 
   const loadBooks = useCallback(async () => {
     const response = await api.get('/books', { params: { query, status } });
-    setBooks(response.data);
+    setBooks(Array.isArray(response.data) ? response.data : []);
   }, [query, status]);
 
   const loadStats = useCallback(async () => {
@@ -117,14 +117,27 @@ export default function App() {
   const handleBookSubmit = async (payload) => {
     setSubmittingBook(true);
     try {
-      await api.post('/books/manual', payload);
-      showToast('Book saved successfully.');
+      const response = await api.post('/books/manual', payload);
+      const title = response.data?.title;
+      showToast(title ? `Saved: ${title}` : 'Book saved successfully.');
       setFormData(emptyForm);
       await Promise.all([loadBooks(), loadStats()]);
     } catch (err) {
       showToast(err.response?.data?.error || 'Failed to save book.');
     } finally {
       setSubmittingBook(false);
+    }
+  };
+
+  const handleDeleteBook = async (bookId) => {
+    const confirmed = window.confirm('Delete this book from inventory?');
+    if (!confirmed) return;
+    try {
+      await api.delete(`/books/${bookId}`);
+      showToast('Book deleted.');
+      await Promise.all([loadBooks(), loadStats()]);
+    } catch (err) {
+      showToast(err.response?.data?.error || 'Delete failed.');
     }
   };
 
@@ -313,6 +326,7 @@ export default function App() {
                     highlighted={highlightedBookId === book.id}
                     onCheckout={handleCheckout}
                     onReturn={handleReturn}
+                    onDelete={handleDeleteBook}
                   />
                 </motion.div>
               ))}

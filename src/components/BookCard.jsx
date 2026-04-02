@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import clsx from 'clsx';
-import { BookOpenCheck, CornerDownLeft, MapPinned, UserRound } from 'lucide-react';
+import { BookOpenCheck, CornerDownLeft, MapPinned, Trash2, UserRound } from 'lucide-react';
 
-export default function BookCard({ book, members, highlighted, onCheckout, onReturn }) {
+export default function BookCard({ book, members, highlighted, onCheckout, onReturn, onDelete }) {
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [memberName, setMemberName] = useState('');
   const [memberId, setMemberId] = useState(members[0]?.id ? String(members[0].id) : '');
@@ -110,6 +110,14 @@ export default function BookCard({ book, members, highlighted, onCheckout, onRet
             Return
           </button>
         )}
+        <button
+          type="button"
+          onClick={() => onDelete(book.id)}
+          className="inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-red-600 px-4 py-2 text-base font-semibold text-white transition-all hover:brightness-110 active:scale-[0.98]"
+        >
+          <Trash2 className="h-5 w-5" />
+          Delete
+        </button>
       </div>
 
       {checkoutOpen && (

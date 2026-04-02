@@ -105,7 +105,27 @@ const fetchBookMetadata = async (isbn) => {
       coverUrl: `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`,
     };
   } catch {
-    return null;
+    try {
+      const response = await axios.get('https://www.googleapis.com/books/v1/volumes', {
+        timeout: 7000,
+        params: { q: `isbn:${isbn}`, maxResults: 1 },
+      });
+      const item = response.data?.items?.[0]?.volumeInfo;
+      if (!item) return null;
+      return {
+        isbn,
+        title: item.title || 'Untitled Book',
+        author: Array.isArray(item.authors) && item.authors[0] ? item.authors[0] : 'Unknown Author',
+        genre: Array.isArray(item.categories) && item.categories[0] ? item.categories[0] : 'General',
+        condition: 'Good',
+        shelfCode: 'UNASSIGNED',
+        totalCopies: 1,
+        availableCopies: 1,
+        coverUrl: item.imageLinks?.thumbnail || item.imageLinks?.smallThumbnail || null,
+      };
+    } catch {
+      return null;
+    }
   }
 };
 
@@ -295,6 +315,18 @@ app.post('/api/books/manual', async (req, res, next) => {
     }
 
     res.json(withActiveCheckout(saved));
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.delete('/api/books/:id', async (req, res, next) => {
+  try {
+    const bookId = Number(req.params.id);
+    const existing = await prisma.book.findUnique({ where: { id: bookId } });
+    if (!existing) return res.status(404).json({ error: 'Book not found.' });
+    await prisma.book.delete({ where: { id: bookId } });
+    res.json({ ok: true });
   } catch (error) {
     next(error);
   }

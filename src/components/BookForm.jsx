@@ -41,10 +41,23 @@ export default function BookForm({ initialValues, onSubmit, submitting }) {
 
   const handleSubmit = (event) => {
     event.preventDefault();
-    onSubmit({
-      ...form,
-      totalCopies: Number(form.totalCopies || 1),
-    });
+    const isbnOnly =
+      !form.title?.trim() &&
+      !form.author?.trim() &&
+      !form.genre?.trim() &&
+      !form.shelfCode?.trim() &&
+      !form.coverUrl?.trim() &&
+      (!form.totalCopies || Number(form.totalCopies) === 1) &&
+      form.condition === 'Good';
+
+    onSubmit(
+      isbnOnly
+        ? { isbn: form.isbn }
+        : {
+            ...form,
+            totalCopies: Number(form.totalCopies || 1),
+          }
+    );
   };
 
   return (
