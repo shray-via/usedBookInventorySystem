@@ -23,95 +23,6 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const BOOK_SEED = [
-  {
-    isbn: '9780143127741',
-    title: 'The Martian',
-    author: 'Andy Weir',
-    genre: 'Sci-Fi',
-    condition: 'Good',
-    shelfCode: 'SF-A1',
-    totalCopies: 3,
-    availableCopies: 2,
-  },
-  {
-    isbn: '9780062315007',
-    title: 'Sapiens',
-    author: 'Yuval Noah Harari',
-    genre: 'History',
-    condition: 'Very Good',
-    shelfCode: 'NF-B3',
-    totalCopies: 2,
-    availableCopies: 2,
-  },
-  {
-    isbn: '9780307277671',
-    title: 'The Road',
-    author: 'Cormac McCarthy',
-    genre: 'Fiction',
-    condition: 'Fair',
-    shelfCode: 'FI-C2',
-    totalCopies: 2,
-    availableCopies: 1,
-  },
-  {
-    isbn: '9780141439518',
-    title: 'Pride and Prejudice',
-    author: 'Jane Austen',
-    genre: 'Classic',
-    condition: 'Good',
-    shelfCode: 'CL-D4',
-    totalCopies: 4,
-    availableCopies: 4,
-  },
-  {
-    isbn: '9780307949486',
-    title: 'Ready Player One',
-    author: 'Ernest Cline',
-    genre: 'Sci-Fi',
-    condition: 'Good',
-    shelfCode: 'SF-A3',
-    totalCopies: 2,
-    availableCopies: 2,
-  },
-  {
-    isbn: '9781501128035',
-    title: 'It Ends with Us',
-    author: 'Colleen Hoover',
-    genre: 'Romance',
-    condition: 'Like New',
-    shelfCode: 'RO-E1',
-    totalCopies: 3,
-    availableCopies: 3,
-  },
-  {
-    isbn: '9780553380163',
-    title: 'A Brief History of Time',
-    author: 'Stephen Hawking',
-    genre: 'Science',
-    condition: 'Good',
-    shelfCode: 'SC-F2',
-    totalCopies: 1,
-    availableCopies: 1,
-  },
-  {
-    isbn: '9780525566151',
-    title: 'Atomic Habits',
-    author: 'James Clear',
-    genre: 'Self-Help',
-    condition: 'Very Good',
-    shelfCode: 'SH-G2',
-    totalCopies: 5,
-    availableCopies: 4,
-  },
-];
-
-const activeCheckoutSeed = {
-  memberName: 'Nina Patel',
-  subscriptionPlan: 'Premium Monthly',
-  dueAt: new Date(Date.now() + 8 * 24 * 60 * 60 * 1000),
-};
-
 const normalizeIsbn = (value) => (value || '').replace(/[^0-9Xx]/g, '').toUpperCase();
 
 const extractIsbn = (rawCode) => {
@@ -153,6 +64,14 @@ const withActiveCheckout = (book) => ({
   checkouts: undefined,
 });
 
+const toMemberPayload = (body) => ({
+  name: body.name?.trim() || '',
+  phone: body.phone?.trim() || null,
+  email: body.email?.trim() || null,
+  plan: body.plan?.trim() || 'Monthly',
+  active: body.active ?? true,
+});
+
 const fetchBookMetadata = async (isbn) => {
   try {
     const response = await axios.get(`https://openlibrary.org/isbn/${isbn}.json`, { timeout: 7000 });
@@ -186,25 +105,6 @@ const fetchBookMetadata = async (isbn) => {
   }
 };
 
-const seedIfEmpty = async () => {
-  const count = await prisma.book.count();
-  if (count > 0) return;
-
-  for (const book of BOOK_SEED) {
-    await prisma.book.create({ data: book });
-  }
-
-  const road = await prisma.book.findUnique({ where: { isbn: '9780307277671' } });
-  if (road) {
-    await prisma.checkout.create({
-      data: {
-        bookId: road.id,
-        ...activeCheckoutSeed,
-      },
-    });
-  }
-};
-
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
 });
@@ -218,15 +118,11 @@ app.get('/api/stats', async (req, res, next) => {
         availableCopies: true,
       },
     });
-    const activeCheckouts = await prisma.checkout.findMany({
-      where: { returnedAt: null },
-      select: { memberName: true },
-    });
+    const activeMembers = await prisma.member.count({ where: { active: true } });
 
     const totalCopies = books.reduce((sum, book) => sum + book.totalCopies, 0);
     const availableCopies = books.reduce((sum, book) => sum + book.availableCopies, 0);
     const checkedOutCopies = Math.max(0, totalCopies - availableCopies);
-    const activeMembers = new Set(activeCheckouts.map((row) => row.memberName)).size;
 
     res.json({ totalTitles, totalCopies, availableCopies, checkedOutCopies, activeMembers });
   } catch (error) {
@@ -261,6 +157,37 @@ app.get('/api/books', async (req, res, next) => {
     });
 
     res.json(books.map(withActiveCheckout));
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get('/api/members', async (req, res, next) => {
+  try {
+    const members = await prisma.member.findMany({
+      where: { active: true },
+      orderBy: [{ name: 'asc' }],
+    });
+    res.json(members);
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post('/api/members', async (req, res, next) => {
+  try {
+    const payload = toMemberPayload(req.body);
+    if (!payload.name) return res.status(400).json({ error: 'Member name is required.' });
+
+    const existing = await prisma.member.findUnique({ where: { name: payload.name } });
+    const member = existing
+      ? await prisma.member.update({
+          where: { name: payload.name },
+          data: { ...payload, active: true },
+        })
+      : await prisma.member.create({ data: payload });
+
+    res.json(member);
   } catch (error) {
     next(error);
   }
@@ -334,10 +261,19 @@ app.post('/api/books/manual', async (req, res, next) => {
 app.post('/api/books/:id/checkout', async (req, res, next) => {
   try {
     const bookId = Number(req.params.id);
-    const memberName = req.body.memberName?.trim();
+    const memberId = req.body.memberId ? Number(req.body.memberId) : null;
+    const providedName = req.body.memberName?.trim();
     const subscriptionPlan = req.body.subscriptionPlan?.trim() || 'Monthly';
     const dueAt = req.body.dueAt ? new Date(req.body.dueAt) : null;
+    let memberName = providedName;
+    let resolvedPlan = subscriptionPlan;
 
+    if (memberId) {
+      const member = await prisma.member.findUnique({ where: { id: memberId } });
+      if (!member) return res.status(404).json({ error: 'Selected member was not found.' });
+      memberName = member.name;
+      resolvedPlan = member.plan || subscriptionPlan;
+    }
     if (!memberName) return res.status(400).json({ error: 'Member name is required.' });
 
     const result = await prisma.$transaction(async (tx) => {
@@ -348,8 +284,9 @@ app.post('/api/books/:id/checkout', async (req, res, next) => {
       await tx.checkout.create({
         data: {
           bookId,
+          memberId,
           memberName,
-          subscriptionPlan,
+          subscriptionPlan: resolvedPlan,
           dueAt: dueAt && !Number.isNaN(dueAt.getTime()) ? dueAt : null,
         },
       });
@@ -421,12 +358,4 @@ app.use((error, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 3001;
-
-seedIfEmpty()
-  .then(() => {
-    app.listen(PORT, () => console.log(`Express listening on :${PORT}`));
-  })
-  .catch((error) => {
-    console.error('Failed to start server:', error);
-    process.exit(1);
-  });
+app.listen(PORT, () => console.log(`Express listening on :${PORT}`));

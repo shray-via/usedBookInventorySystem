@@ -23,16 +23,31 @@ model Book {
   checkouts       Checkout[]
 }
 
+model Member {
+  id        Int        @id @default(autoincrement())
+  name      String     @unique
+  phone     String?
+  email     String?
+  plan      String     @default("Monthly")
+  active    Boolean    @default(true)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  checkouts Checkout[]
+}
+
 model Checkout {
   id               Int      @id @default(autoincrement())
   bookId           Int
+  memberId         Int?
   memberName       String
   subscriptionPlan String
   checkedOutAt     DateTime @default(now())
   dueAt            DateTime?
   returnedAt       DateTime?
   book             Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  member           Member?  @relation(fields: [memberId], references: [id], onDelete: SetNull)
 
   @@index([bookId, returnedAt])
   @@index([memberName, returnedAt])
+  @@index([memberId, returnedAt])
 }

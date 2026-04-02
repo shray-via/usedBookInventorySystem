@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { AnimatePresence, motion } from 'framer-motion';
-import { PlusCircle, RefreshCcw, ScanLine, Search } from 'lucide-react';
+import { PlusCircle, RefreshCcw, ScanLine, Search, Users } from 'lucide-react';
 import StatsGrid from './components/StatsGrid';
 import ScannerPanel from './components/ScannerPanel';
 import BookForm from './components/BookForm';
 import BookCard from './components/BookCard';
+import MemberForm from './components/MemberForm';
 
 const emptyForm = {
   isbn: '',
@@ -21,6 +22,7 @@ const api = axios.create({ baseURL: '/api' });
 
 export default function App() {
   const [books, setBooks] = useState([]);
+  const [members, setMembers] = useState([]);
   const [stats, setStats] = useState(null);
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState('all');
@@ -32,6 +34,7 @@ export default function App() {
   const [formData, setFormData] = useState(emptyForm);
   const [highlightedBookId, setHighlightedBookId] = useState(null);
   const [submittingBook, setSubmittingBook] = useState(false);
+  const [submittingMember, setSubmittingMember] = useState(false);
 
   const loadBooks = useCallback(async () => {
     const response = await api.get('/books', { params: { query, status } });
@@ -43,17 +46,22 @@ export default function App() {
     setStats(response.data);
   }, []);
 
+  const loadMembers = useCallback(async () => {
+    const response = await api.get('/members');
+    setMembers(response.data);
+  }, []);
+
   const reloadAll = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
-      await Promise.all([loadBooks(), loadStats()]);
+      await Promise.all([loadBooks(), loadStats(), loadMembers()]);
     } catch (err) {
       setError(err.response?.data?.error || 'Unable to load inventory. Please retry.');
     } finally {
       setLoading(false);
     }
-  }, [loadBooks, loadStats]);
+  }, [loadBooks, loadStats, loadMembers]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -118,11 +126,24 @@ export default function App() {
     }
   };
 
+  const handleMemberSubmit = async (payload) => {
+    setSubmittingMember(true);
+    try {
+      await api.post('/members', payload);
+      showToast('Subscriber saved.');
+      await Promise.all([loadMembers(), loadStats()]);
+    } catch (err) {
+      showToast(err.response?.data?.error || 'Failed to save subscriber.');
+    } finally {
+      setSubmittingMember(false);
+    }
+  };
+
   const handleCheckout = async (bookId, checkoutPayload) => {
     try {
       await api.post(`/books/${bookId}/checkout`, checkoutPayload);
       showToast('Book checked out.');
-      await Promise.all([loadBooks(), loadStats()]);
+      await Promise.all([loadBooks(), loadStats(), loadMembers()]);
     } catch (err) {
       showToast(err.response?.data?.error || 'Checkout failed.');
     }
@@ -168,7 +189,7 @@ export default function App() {
         <StatsGrid stats={stats} />
 
         <section className="grid gap-3 rounded-2xl bg-white/95 p-3 shadow-lg md:grid-cols-4 md:items-end md:p-4">
-          <div className="grid grid-cols-2 gap-2 md:col-span-1">
+          <div className="grid grid-cols-3 gap-2 md:col-span-1">
             <button
               type="button"
               onClick={() => setActivePanel('scan')}
@@ -188,6 +209,16 @@ export default function App() {
             >
               <PlusCircle className="h-5 w-5" />
               Add
+            </button>
+            <button
+              type="button"
+              onClick={() => setActivePanel('members')}
+              className={`inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl px-3 py-2 text-base font-semibold transition-all ${
+                activePanel === 'members' ? 'bg-ink-700 text-white' : 'bg-ink-100 text-ink-700'
+              }`}
+            >
+              <Users className="h-5 w-5" />
+              Members
             </button>
           </div>
 
@@ -219,14 +250,18 @@ export default function App() {
         </section>
 
         <section className="grid gap-3 lg:grid-cols-2">
-          {activePanel === 'scan' ? (
+          {activePanel === 'scan' && (
             <ScannerPanel
               open={scannerOpen}
               onToggle={() => setScannerOpen((open) => !open)}
               onDetected={handleScanOrLookup}
             />
-          ) : (
+          )}
+          {activePanel === 'add' && (
             <BookForm initialValues={formData} onSubmit={handleBookSubmit} submitting={submittingBook} />
+          )}
+          {activePanel === 'members' && (
+            <MemberForm members={members} onSubmit={handleMemberSubmit} submitting={submittingMember} />
           )}
         </section>
 
@@ -272,6 +307,7 @@ export default function App() {
                 >
                   <BookCard
                     book={book}
+                    members={members}
                     highlighted={highlightedBookId === book.id}
                     onCheckout={handleCheckout}
                     onReturn={handleReturn}
