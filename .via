@@ -1,0 +1,1 @@
+{"version":1,"stack":{"frontend":"react","bundler":"vite","styling":"bootstrap","backend":"express","database":"sqlite"}}

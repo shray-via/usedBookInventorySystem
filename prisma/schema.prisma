@@ -1,0 +1,38 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = "postgresql://user@localhost:5432/viadb?schema=public"
+}
+
+model Book {
+  id              Int        @id @default(autoincrement())
+  isbn            String     @unique
+  title           String
+  author          String
+  genre           String?
+  condition       String     @default("Good")
+  shelfCode       String
+  coverUrl        String?
+  totalCopies     Int        @default(1)
+  availableCopies Int        @default(1)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  checkouts       Checkout[]
+}
+
+model Checkout {
+  id               Int      @id @default(autoincrement())
+  bookId           Int
+  memberName       String
+  subscriptionPlan String
+  checkedOutAt     DateTime @default(now())
+  dueAt            DateTime?
+  returnedAt       DateTime?
+  book             Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@index([bookId, returnedAt])
+  @@index([memberName, returnedAt])
+}
