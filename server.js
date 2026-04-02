@@ -3,8 +3,20 @@ import cors from 'cors';
 import fs from 'fs';
 import path from 'path';
 import axios from 'axios';
-import { PrismaClient } from '@prisma/client';
+import { execSync } from 'child_process';
 
+const ensurePrismaReady = () => {
+  try {
+    // Keep schema and generated client aligned on cold boot.
+    execSync('npx prisma db push', { stdio: 'inherit' });
+  } catch (error) {
+    console.error('Prisma bootstrap failed:', error?.message || error);
+    throw error;
+  }
+};
+
+ensurePrismaReady();
+const { PrismaClient } = await import('@prisma/client');
 const prisma = new PrismaClient();
 const app = express();
 
