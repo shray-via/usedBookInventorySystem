@@ -40,10 +40,24 @@ export default function BookCard({ book, members, highlighted, onCheckout, onRet
       )}
     >
       <div className="flex items-start justify-between gap-2">
-        <div>
-          <h3 className="text-base font-bold tracking-tight text-ink-800">{book.title}</h3>
-          <p className="mt-0.5 text-base text-ink-600">{book.author}</p>
-          <p className="mt-0.5 text-base font-medium text-ink-500">{book.isbn}</p>
+        <div className="flex items-start gap-2">
+          {book.coverUrl ? (
+            <img
+              src={book.coverUrl}
+              alt={`${book.title} cover`}
+              className="h-16 w-12 rounded-md object-cover shadow-sm"
+              loading="lazy"
+            />
+          ) : (
+            <div className="flex h-16 w-12 items-center justify-center rounded-md bg-brand-100 text-xs font-semibold text-brand-700">
+              No Img
+            </div>
+          )}
+          <div>
+            <h3 className="text-base font-bold tracking-tight text-ink-800">{book.title}</h3>
+            <p className="mt-0.5 text-base text-ink-600">{book.author}</p>
+            <p className="mt-0.5 text-base font-medium text-ink-500">{book.isbn}</p>
+          </div>
         </div>
         <span
           className={clsx(

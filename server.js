@@ -219,6 +219,7 @@ app.post('/api/books/resolve', async (req, res, next) => {
         genre: '',
         condition: 'Good',
         shelfCode: 'UNASSIGNED',
+        coverUrl: '',
         totalCopies: 1,
       },
     });

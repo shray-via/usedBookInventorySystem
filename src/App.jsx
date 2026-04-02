@@ -15,6 +15,7 @@ const emptyForm = {
   genre: '',
   condition: 'Good',
   shelfCode: '',
+  coverUrl: '',
   totalCopies: 1,
 };
 
@@ -103,6 +104,7 @@ export default function App() {
           genre: suggestion.genre || '',
           condition: suggestion.condition || 'Good',
           shelfCode: suggestion.shelfCode || '',
+          coverUrl: suggestion.coverUrl || '',
           totalCopies: suggestion.totalCopies || 1,
         });
         showToast('ISBN found. Review details and save it to inventory.');

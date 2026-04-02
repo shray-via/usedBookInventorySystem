@@ -13,6 +13,18 @@ export default function BookForm({ initialValues, onSubmit, submitting }) {
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handlePhotoUpload = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setField('coverUrl', reader.result);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleSubmit = (event) => {
     event.preventDefault();
     onSubmit({
@@ -82,6 +94,31 @@ export default function BookForm({ initialValues, onSubmit, submitting }) {
             value={form.totalCopies}
             onChange={(event) => setField('totalCopies', event.target.value)}
           />
+        </label>
+
+        <label className="md:col-span-2">
+          <span className="mb-1 block text-base font-semibold text-ink-700">Book Photo (upload or URL)</span>
+          <div className="grid gap-2 md:grid-cols-[1fr_auto]">
+            <input
+              className="min-h-[44px] w-full rounded-xl border border-brand-200 px-3 text-base outline-none"
+              value={form.coverUrl || ''}
+              onChange={(event) => setField('coverUrl', event.target.value)}
+              placeholder="https://... or upload below"
+            />
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handlePhotoUpload}
+              className="min-h-[44px] w-full rounded-xl border border-brand-200 bg-white px-3 py-2 text-base"
+            />
+          </div>
+          {form.coverUrl && (
+            <img
+              src={form.coverUrl}
+              alt="Book cover preview"
+              className="mt-2 h-20 w-14 rounded-md object-cover shadow-sm"
+            />
+          )}
         </label>
 
         <button
