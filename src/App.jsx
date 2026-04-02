@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { AnimatePresence, motion } from 'framer-motion';
-import { BookOpen, RefreshCcw, Search, Sparkles } from 'lucide-react';
+import { PlusCircle, RefreshCcw, ScanLine, Search } from 'lucide-react';
 import StatsGrid from './components/StatsGrid';
 import ScannerPanel from './components/ScannerPanel';
 import BookForm from './components/BookForm';
@@ -27,6 +27,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [scannerOpen, setScannerOpen] = useState(false);
+  const [activePanel, setActivePanel] = useState('scan');
   const [toast, setToast] = useState('');
   const [formData, setFormData] = useState(emptyForm);
   const [highlightedBookId, setHighlightedBookId] = useState(null);
@@ -66,6 +67,12 @@ export default function App() {
     const timer = setTimeout(() => setToast(''), 3200);
     return () => clearTimeout(timer);
   }, [toast]);
+
+  useEffect(() => {
+    if (activePanel === 'scan' && !scannerOpen) {
+      setScannerOpen(true);
+    }
+  }, [activePanel, scannerOpen]);
 
   const showToast = (message) => {
     setToast(message);
@@ -134,82 +141,99 @@ export default function App() {
   const visibleCountLabel = useMemo(() => `${books.length} titles`, [books.length]);
 
   return (
-    <main className="min-h-screen px-4 pb-12 pt-6 md:px-8">
+    <main className="min-h-screen px-4 pb-10 pt-4 md:px-8">
       <motion.section
-        className="mx-auto max-w-6xl space-y-6"
+        className="mx-auto max-w-6xl space-y-4"
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35 }}
       >
-        <div className="rounded-3xl bg-gradient-to-br from-brand-700 via-brand-600 to-ink-700 p-6 text-white shadow-xl md:p-8">
-          <div className="flex items-start justify-between gap-4">
+        <section className="rounded-2xl bg-gradient-to-br from-brand-700 via-brand-600 to-ink-700 p-4 text-white shadow-xl">
+          <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="inline-flex items-center gap-2 rounded-full bg-white/20 px-3 py-1 text-sm font-medium">
-                <Sparkles className="h-4 w-4" />
-                Circulation Command Center
-              </p>
-              <h1 className="mt-3 text-3xl font-bold tracking-tight md:text-5xl">Used Book Inventory System</h1>
-              <p className="mt-3 max-w-2xl text-base leading-relaxed text-brand-50 md:text-lg">
-                Scan ISBN/QR, add books fast, and manage checkout + return flow for subscribers with real-time stock
-                tracking.
-              </p>
+              <h1 className="text-2xl font-bold tracking-tight md:text-4xl">Book Inventory</h1>
+              <p className="mt-1 text-base text-brand-50">Scan, checkout, and return in a few taps.</p>
             </div>
-            <BookOpen className="h-12 w-12 shrink-0 text-brand-100 md:h-16 md:w-16" />
+            <button
+              type="button"
+              onClick={reloadAll}
+              className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl bg-white/20 p-2 text-white transition-all hover:bg-white/30 active:scale-[0.98]"
+              aria-label="Refresh inventory"
+            >
+              <RefreshCcw className="h-5 w-5" />
+            </button>
           </div>
-        </div>
+        </section>
 
         <StatsGrid stats={stats} />
 
-        <section className="grid gap-4 rounded-3xl bg-white/90 p-4 shadow-lg md:grid-cols-4 md:items-end md:p-6">
+        <section className="grid gap-3 rounded-2xl bg-white/95 p-3 shadow-lg md:grid-cols-4 md:items-end md:p-4">
+          <div className="grid grid-cols-2 gap-2 md:col-span-1">
+            <button
+              type="button"
+              onClick={() => setActivePanel('scan')}
+              className={`inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl px-3 py-2 text-base font-semibold transition-all ${
+                activePanel === 'scan' ? 'bg-accent-600 text-white' : 'bg-ink-100 text-ink-700'
+              }`}
+            >
+              <ScanLine className="h-5 w-5" />
+              Scan
+            </button>
+            <button
+              type="button"
+              onClick={() => setActivePanel('add')}
+              className={`inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl px-3 py-2 text-base font-semibold transition-all ${
+                activePanel === 'add' ? 'bg-brand-600 text-white' : 'bg-ink-100 text-ink-700'
+              }`}
+            >
+              <PlusCircle className="h-5 w-5" />
+              Add
+            </button>
+          </div>
+
           <label className="md:col-span-2">
-            <span className="mb-2 block text-base font-semibold text-ink-700">Search by title, author, ISBN, shelf</span>
+            <span className="mb-1 block text-base font-semibold text-ink-700">Find Book</span>
             <div className="flex min-h-[44px] items-center rounded-xl border border-brand-200 bg-white px-3 shadow-sm">
               <Search className="h-5 w-5 text-brand-500" />
               <input
                 className="h-11 w-full bg-transparent px-3 text-base text-ink-700 outline-none"
-                placeholder="Try: 9780143127741 or Sapiens"
+                placeholder="Title, author, ISBN, shelf"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
               />
             </div>
           </label>
 
-          <label>
-            <span className="mb-2 block text-base font-semibold text-ink-700">Stock status</span>
+          <label className="md:col-span-1">
+            <span className="mb-1 block text-base font-semibold text-ink-700">Filter</span>
             <select
               className="min-h-[44px] w-full rounded-xl border border-brand-200 bg-white px-3 text-base text-ink-700 shadow-sm outline-none"
               value={status}
               onChange={(event) => setStatus(event.target.value)}
             >
-              <option value="all">All books</option>
-              <option value="available">Available only</option>
-              <option value="checkedout">Fully checked out</option>
+              <option value="all">All</option>
+              <option value="available">Available</option>
+              <option value="checkedout">Checked Out</option>
             </select>
           </label>
-
-          <button
-            type="button"
-            onClick={reloadAll}
-            className="flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-accent-600 px-5 py-3 text-base font-semibold text-white shadow-md transition-all hover:brightness-110 active:scale-[0.98]"
-          >
-            <RefreshCcw className="h-5 w-5" />
-            Refresh
-          </button>
         </section>
 
-        <section className="grid gap-4 lg:grid-cols-2">
-          <ScannerPanel
-            open={scannerOpen}
-            onToggle={() => setScannerOpen((open) => !open)}
-            onDetected={handleScanOrLookup}
-          />
-          <BookForm initialValues={formData} onSubmit={handleBookSubmit} submitting={submittingBook} />
+        <section className="grid gap-3 lg:grid-cols-2">
+          {activePanel === 'scan' ? (
+            <ScannerPanel
+              open={scannerOpen}
+              onToggle={() => setScannerOpen((open) => !open)}
+              onDetected={handleScanOrLookup}
+            />
+          ) : (
+            <BookForm initialValues={formData} onSubmit={handleBookSubmit} submitting={submittingBook} />
+          )}
         </section>
 
-        <section className="space-y-4">
+        <section className="space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold tracking-tight text-ink-800">Inventory</h2>
-            <span className="rounded-full bg-brand-100 px-3 py-1 text-sm font-semibold text-brand-700">
+            <h2 className="text-xl font-bold tracking-tight text-ink-800 md:text-2xl">Inventory</h2>
+            <span className="rounded-full bg-brand-100 px-3 py-1 text-base font-semibold text-brand-700">
               {visibleCountLabel}
             </span>
           </div>
@@ -238,13 +262,13 @@ export default function App() {
           )}
 
           {!loading && !error && books.length > 0 && (
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
               {books.map((book, index) => (
                 <motion.div
                   key={book.id}
                   initial={{ opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.04, duration: 0.25 }}
+                  transition={{ delay: index * 0.03, duration: 0.2 }}
                 >
                   <BookCard
                     book={book}
@@ -265,7 +289,7 @@ export default function App() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
-            className="fixed bottom-4 left-4 right-4 z-50 mx-auto max-w-lg rounded-2xl bg-ink-800 px-4 py-3 text-base text-white shadow-lg md:left-auto"
+            className="fixed bottom-3 left-3 right-3 z-50 mx-auto max-w-lg rounded-2xl bg-ink-800 px-4 py-3 text-base text-white shadow-lg md:left-auto"
           >
             {toast}
           </motion.div>

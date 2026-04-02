@@ -23,56 +23,54 @@ export default function BookCard({ book, highlighted, onCheckout, onReturn }) {
   return (
     <article
       className={clsx(
-        'rounded-2xl bg-white p-5 shadow-md transition-all duration-200 hover:-translate-y-1 hover:shadow-lg',
+        'rounded-xl bg-white p-3 shadow-md transition-all duration-200 hover:-translate-y-1 hover:shadow-lg',
         highlighted && 'ring-2 ring-accent-500'
       )}
     >
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex items-start justify-between gap-2">
         <div>
-          <h3 className="text-lg font-bold tracking-tight text-ink-800">{book.title}</h3>
+          <h3 className="text-base font-bold tracking-tight text-ink-800">{book.title}</h3>
           <p className="mt-1 text-base text-ink-600">{book.author}</p>
-          <p className="mt-1 text-sm font-medium text-ink-500">ISBN {book.isbn}</p>
+          <p className="mt-1 text-base font-medium text-ink-500">ISBN {book.isbn}</p>
         </div>
         <span
           className={clsx(
-            'rounded-full px-3 py-1 text-sm font-semibold',
+            'rounded-full px-2 py-1 text-base font-semibold',
             available ? 'bg-accent-100 text-accent-700' : 'bg-amber-100 text-amber-700'
           )}
         >
-          {available ? 'Available' : 'Checked Out'}
+          {available ? 'In' : 'Out'}
         </span>
       </div>
 
-      <div className="mt-4 grid gap-2 text-base text-ink-700">
+      <div className="mt-3 grid gap-1 text-base text-ink-700">
         <p className="inline-flex items-center gap-2">
           <MapPinned className="h-4 w-4 text-brand-600" />
-          Shelf {book.shelfCode}
+          {book.shelfCode}
         </p>
         <p className="inline-flex items-center gap-2">
           <BookOpenCheck className="h-4 w-4 text-brand-600" />
-          Copies: {book.availableCopies} / {book.totalCopies}
+          {book.availableCopies} / {book.totalCopies} copies
         </p>
-        <p className="text-sm text-ink-500">Condition: {book.condition}</p>
+        <p className="text-base text-ink-500">Condition: {book.condition}</p>
       </div>
 
       {book.activeCheckout && (
-        <div className="mt-4 rounded-xl bg-brand-50 p-3 text-sm text-ink-700">
+        <div className="mt-3 rounded-xl bg-brand-50 p-3 text-base text-ink-700">
           <p className="inline-flex items-center gap-2 font-semibold">
             <UserRound className="h-4 w-4 text-brand-600" />
-            Checked out by {book.activeCheckout.memberName}
+            {book.activeCheckout.memberName}
           </p>
           <p className="mt-1">Plan: {book.activeCheckout.subscriptionPlan}</p>
-          {book.activeCheckout.dueAt && (
-            <p className="mt-1">Due: {new Date(book.activeCheckout.dueAt).toLocaleDateString()}</p>
-          )}
+          {book.activeCheckout.dueAt && <p className="mt-1">Due: {new Date(book.activeCheckout.dueAt).toLocaleDateString()}</p>}
         </div>
       )}
 
-      <div className="mt-4 flex flex-wrap gap-2">
+      <div className="mt-3 flex flex-wrap gap-2">
         {available ? (
           <button
             type="button"
-            onClick={() => setCheckoutOpen((v) => !v)}
+            onClick={() => setCheckoutOpen((open) => !open)}
             className="min-h-[44px] rounded-xl bg-accent-600 px-4 py-2 text-base font-semibold text-white transition-all hover:brightness-110 active:scale-[0.98]"
           >
             Checkout
@@ -84,15 +82,15 @@ export default function BookCard({ book, highlighted, onCheckout, onReturn }) {
             className="inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-brand-600 px-4 py-2 text-base font-semibold text-white transition-all hover:brightness-110 active:scale-[0.98]"
           >
             <CornerDownLeft className="h-5 w-5" />
-            Return Book
+            Return
           </button>
         )}
       </div>
 
       {checkoutOpen && (
-        <form onSubmit={handleCheckoutSubmit} className="mt-4 space-y-2 rounded-xl bg-ink-50 p-3">
+        <form onSubmit={handleCheckoutSubmit} className="mt-3 space-y-2 rounded-xl bg-ink-50 p-3">
           <label className="block">
-            <span className="mb-1 block text-sm font-semibold text-ink-700">Member Name</span>
+            <span className="mb-1 block text-base font-semibold text-ink-700">Member Name</span>
             <input
               required
               className="min-h-[44px] w-full rounded-lg border border-brand-200 px-3 text-base outline-none"
@@ -102,7 +100,7 @@ export default function BookCard({ book, highlighted, onCheckout, onReturn }) {
             />
           </label>
           <label className="block">
-            <span className="mb-1 block text-sm font-semibold text-ink-700">Subscription Plan</span>
+            <span className="mb-1 block text-base font-semibold text-ink-700">Plan</span>
             <select
               className="min-h-[44px] w-full rounded-lg border border-brand-200 px-3 text-base outline-none"
               value={subscriptionPlan}
@@ -114,7 +112,7 @@ export default function BookCard({ book, highlighted, onCheckout, onReturn }) {
             </select>
           </label>
           <label className="block">
-            <span className="mb-1 block text-sm font-semibold text-ink-700">Due Date (optional)</span>
+            <span className="mb-1 block text-base font-semibold text-ink-700">Due Date (optional)</span>
             <input
               type="date"
               className="min-h-[44px] w-full rounded-lg border border-brand-200 px-3 text-base outline-none"

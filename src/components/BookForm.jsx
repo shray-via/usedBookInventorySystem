@@ -3,6 +3,7 @@ import { PlusCircle } from 'lucide-react';
 
 export default function BookForm({ initialValues, onSubmit, submitting }) {
   const [form, setForm] = useState(initialValues);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
 
   useEffect(() => {
     setForm(initialValues);
@@ -21,12 +22,12 @@ export default function BookForm({ initialValues, onSubmit, submitting }) {
   };
 
   return (
-    <section className="rounded-2xl bg-white/90 p-5 shadow-lg">
-      <h3 className="text-xl font-bold tracking-tight text-ink-800">Add or Update Book</h3>
-      <p className="mt-1 text-base text-ink-600">Works with scanned ISBNs or manual entry for quick catalog updates.</p>
+    <section className="rounded-2xl bg-white/90 p-4 shadow-lg">
+      <h3 className="text-lg font-bold tracking-tight text-ink-800">Add / Update Book</h3>
+      <p className="mt-1 text-base text-ink-600">Enter only the essentials. Advanced fields are optional.</p>
 
       <form onSubmit={handleSubmit} className="mt-4 grid gap-3 md:grid-cols-2">
-        <label className="md:col-span-2">
+        <label className="md:col-span-1">
           <span className="mb-1 block text-base font-semibold text-ink-700">ISBN</span>
           <input
             required
@@ -36,6 +37,17 @@ export default function BookForm({ initialValues, onSubmit, submitting }) {
             value={form.isbn}
             onChange={(event) => setField('isbn', event.target.value)}
             placeholder="9780143127741"
+          />
+        </label>
+
+        <label className="md:col-span-1">
+          <span className="mb-1 block text-base font-semibold text-ink-700">Shelf Code</span>
+          <input
+            required
+            className="min-h-[44px] w-full rounded-xl border border-brand-200 px-3 text-base outline-none"
+            value={form.shelfCode}
+            onChange={(event) => setField('shelfCode', event.target.value)}
+            placeholder="SF-A1"
           />
         </label>
 
@@ -50,7 +62,7 @@ export default function BookForm({ initialValues, onSubmit, submitting }) {
           />
         </label>
 
-        <label className="md:col-span-2">
+        <label className="md:col-span-1">
           <span className="mb-1 block text-base font-semibold text-ink-700">Author</span>
           <input
             required
@@ -61,43 +73,7 @@ export default function BookForm({ initialValues, onSubmit, submitting }) {
           />
         </label>
 
-        <label>
-          <span className="mb-1 block text-base font-semibold text-ink-700">Genre</span>
-          <input
-            className="min-h-[44px] w-full rounded-xl border border-brand-200 px-3 text-base outline-none"
-            value={form.genre}
-            onChange={(event) => setField('genre', event.target.value)}
-            placeholder="Fiction / Science"
-          />
-        </label>
-
-        <label>
-          <span className="mb-1 block text-base font-semibold text-ink-700">Condition</span>
-          <select
-            className="min-h-[44px] w-full rounded-xl border border-brand-200 px-3 text-base outline-none"
-            value={form.condition}
-            onChange={(event) => setField('condition', event.target.value)}
-          >
-            <option>Like New</option>
-            <option>Very Good</option>
-            <option>Good</option>
-            <option>Fair</option>
-            <option>Worn</option>
-          </select>
-        </label>
-
-        <label>
-          <span className="mb-1 block text-base font-semibold text-ink-700">Shelf Code</span>
-          <input
-            required
-            className="min-h-[44px] w-full rounded-xl border border-brand-200 px-3 text-base outline-none"
-            value={form.shelfCode}
-            onChange={(event) => setField('shelfCode', event.target.value)}
-            placeholder="SF-A1"
-          />
-        </label>
-
-        <label>
+        <label className="md:col-span-1">
           <span className="mb-1 block text-base font-semibold text-ink-700">Total Copies</span>
           <input
             type="number"
@@ -107,6 +83,43 @@ export default function BookForm({ initialValues, onSubmit, submitting }) {
             onChange={(event) => setField('totalCopies', event.target.value)}
           />
         </label>
+
+        <button
+          type="button"
+          onClick={() => setAdvancedOpen((open) => !open)}
+          className="md:col-span-2 min-h-[44px] rounded-xl bg-ink-100 px-4 py-2 text-base font-semibold text-ink-700 transition-all hover:bg-ink-200 active:scale-[0.98]"
+        >
+          {advancedOpen ? 'Hide Advanced Fields' : 'Show Advanced Fields'}
+        </button>
+
+        {advancedOpen && (
+          <label className="md:col-span-1">
+            <span className="mb-1 block text-base font-semibold text-ink-700">Genre</span>
+            <input
+              className="min-h-[44px] w-full rounded-xl border border-brand-200 px-3 text-base outline-none"
+              value={form.genre}
+              onChange={(event) => setField('genre', event.target.value)}
+              placeholder="Fiction / Science"
+            />
+          </label>
+        )}
+
+        {advancedOpen && (
+          <label className="md:col-span-1">
+            <span className="mb-1 block text-base font-semibold text-ink-700">Condition</span>
+            <select
+              className="min-h-[44px] w-full rounded-xl border border-brand-200 px-3 text-base outline-none"
+              value={form.condition}
+              onChange={(event) => setField('condition', event.target.value)}
+            >
+              <option>Like New</option>
+              <option>Very Good</option>
+              <option>Good</option>
+              <option>Fair</option>
+              <option>Worn</option>
+            </select>
+          </label>
+        )}
 
         <button
           type="submit"

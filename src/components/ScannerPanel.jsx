@@ -27,13 +27,23 @@ export default function ScannerPanel({ open, onToggle, onDetected }) {
         stopScanner();
         return;
       }
+      if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
+        setScannerError('Camera needs HTTPS/secure context. Use manual ISBN entry in this session.');
+        return;
+      }
       if (!('BarcodeDetector' in window)) {
         setScannerError('Camera scan is not supported in this browser. Use manual ISBN entry.');
         return;
       }
 
       try {
-        const detector = new window.BarcodeDetector({ formats: BARCODE_FORMATS });
+        const supported = await window.BarcodeDetector.getSupportedFormats();
+        const usableFormats = BARCODE_FORMATS.filter((format) => supported.includes(format));
+        if (usableFormats.length === 0) {
+          setScannerError('Barcode format not supported in this browser. Use manual ISBN entry.');
+          return;
+        }
+        const detector = new window.BarcodeDetector({ formats: usableFormats });
         const stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: 'environment' },
           audio: false,
@@ -84,13 +94,11 @@ export default function ScannerPanel({ open, onToggle, onDetected }) {
   };
 
   return (
-    <section className="rounded-2xl bg-white/90 p-5 shadow-lg">
+    <section className="rounded-2xl bg-white/90 p-4 shadow-lg">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h3 className="text-xl font-bold tracking-tight text-ink-800">Scan ISBN / QR</h3>
-          <p className="mt-1 text-base text-ink-600">
-            Use your camera or paste a printed code to instantly find or add books.
-          </p>
+          <h3 className="text-lg font-bold tracking-tight text-ink-800">Scan ISBN / QR</h3>
+          <p className="mt-1 text-base text-ink-600">Fastest path: open camera, point to code, done.</p>
         </div>
         <button
           type="button"
@@ -103,7 +111,7 @@ export default function ScannerPanel({ open, onToggle, onDetected }) {
 
       <form onSubmit={handleManualSubmit} className="mt-4 space-y-3">
         <label className="block">
-          <span className="mb-2 block text-base font-semibold text-ink-700">Manual code input</span>
+          <span className="mb-2 block text-base font-semibold text-ink-700">Or type/paste code</span>
           <input
             className="min-h-[44px] w-full rounded-xl border border-brand-200 px-3 text-base outline-none"
             placeholder="9780307277671 or QR payload"
